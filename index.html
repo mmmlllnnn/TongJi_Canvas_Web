@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>同济Canvas签到</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .form-group textarea, .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group textarea {
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group input {
+            font-family: inherit;
+        }
+
+        .form-group textarea:focus, .form-group input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .form-group textarea::placeholder, .form-group input::placeholder {
+            color: #999;
+        }
+
+        .scan-section {
+            margin-bottom: 25px;
+        }
+
+        .scan-button {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .scan-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .scan-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .scan-button svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .video-container {
+            position: relative;
+            margin-top: 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            display: none;
+            touch-action: none; /* 禁用默认触摸行为 */
+            cursor: grab;
+        }
+        
+        .video-container:active {
+            cursor: grabbing;
+        }
+
+        #video {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            background: #000;
+        }
+
+        .scan-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 3px solid #4facfe;
+            border-radius: 12px;
+            pointer-events: none;
+        }
+
+        .scan-overlay::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            border: 2px solid rgba(79, 172, 254, 0.3);
+            border-radius: 12px;
+            animation: scan-pulse 2s infinite;
+        }
+
+        @keyframes scan-pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .result-section {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .result-section.show {
+            display: block;
+        }
+
+        .result-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .result-section p {
+            margin-bottom: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .result-section .url {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin-bottom: 15px;
+        }
+
+        .sign-button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .sign-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(86, 171, 47, 0.3);
+        }
+
+        .sign-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .status {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            display: block;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #856404;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .instructions {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .instructions h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+            color: #555;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .error-message {
+            background: #ffebee;
+            border: 1px solid #ffcdd2;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .iframe-container {
+            margin-top: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .iframe-container iframe {
+            width: 100%;
+            height: 400px;
+            border: none;
+            display: block;
+        }
+
+        .iframe-container .iframe-header {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .iframe-container .iframe-close {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .iframe-container .iframe-close:hover {
+            background: #c82333;
+        }
+        
+        .zoom-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: opacity 0.3s ease;
+            opacity: 0;
+        }
+        
+        .video-container.active .zoom-indicator {
+            opacity: 1;
+        }
+        
+        .zoom-text {
+            opacity: 0.8;
+        }
+        
+        .zoom-value {
+            font-weight: 600;
+        }
+        
+        /* 触摸变焦提示 */
+        .zoom-hint {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .video-container.active .zoom-hint {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 同济Canvas签到</h1>
+        </div>
+
+        <div class="content">
+            <div class="instructions">
+                <h3>📋 使用说明</h3>
+                <ol>
+                    <li>在下方输入框中粘贴您的Cookie信息</li>
+                    <li>点击"扫描二维码"按钮启动相机</li>
+                    <li>允许浏览器访问相机权限</li>
+                    <li>将二维码对准扫描框</li>
+                    <li>系统会自动识别并完成签到</li>
+                </ol>
+            </div>
+
+            <div class="form-group">
+                <label for="cookieInput">🍪 Cookie 信息</label>
+                <textarea 
+                    id="cookieInput" 
+                    placeholder="请在此处粘贴您的Cookie信息，例如：session_id=abc123; user_token=xyz789; auth_cookie=def456"
+                    required></textarea>
+                <div class="error-message" id="cookieError">
+                    请输入有效的Cookie信息
+                </div>
+            </div>
+
+            <div class="scan-section">
+                <button class="scan-button" id="scanButton">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9.5,6.5V9.5H6.5V6.5H9.5M11,5H5V11H11V5M9.5,14.5V17.5H6.5V14.5H9.5M11,13H5V19H11V13M17.5,6.5V9.5H14.5V6.5H17.5M19,5H13V11H19V5M13,13H14.5V14.5H13V13M14.5,14.5H16V16H14.5V14.5M16,13H17.5V14.5H16V13M13,16H14.5V17.5H13V16M14.5,17.5H16V19H14.5V17.5M16,16H17.5V17.5H16V16M17.5,13H19V14.5H17.5V13M17.5,17.5H19V19H17.5V17.5M22,7H20V4H17V2H22V7M22,22V17H20V20H17V22H22M2,22H7V20H4V17H2V22M2,2V7H4V4H7V2H2Z" />
+                    </svg>
+                    扫描二维码
+                </button>
+
+                <div class="video-container" id="videoContainer">
+                    <video id="video" autoplay muted playsinline></video>
+                    <div class="scan-overlay"></div>
+                    <div class="zoom-indicator" id="zoomIndicator">
+                        <span class="zoom-text">变焦: </span>
+                        <span class="zoom-value" id="zoomValue">1.0x</span>
+                    </div>
+                    <div class="zoom-hint" id="zoomHint">双指可放大缩小</div>
+                </div>
+            </div>
+
+            <div class="result-section" id="resultSection">
+                <h3>🎯 扫描结果</h3>
+                <p>检测到的签到链接：</p>
+                <div class="url" id="scannedUrl"></div>
+                <button class="sign-button" id="signButton">
+                    使用Cookie访问签到链接
+                </button>
+                <div class="status" id="status"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="./jsQR.js"></script>
+    <script>
+        class BatchSignApp {
+            constructor() {
+                this.video = document.getElementById('video');
+                this.canvas = null;
+                this.context = null;
+                this.scanButton = document.getElementById('scanButton');
+                this.videoContainer = document.getElementById('videoContainer');
+                this.resultSection = document.getElementById('resultSection');
+                this.scannedUrl = document.getElementById('scannedUrl');
+                this.signButton = document.getElementById('signButton');
+                this.status = document.getElementById('status');
+                this.cookieInput = document.getElementById('cookieInput');
+                this.cookieError = document.getElementById('cookieError');
+                this.zoomIndicator = document.getElementById('zoomIndicator');
+                this.zoomValue = document.getElementById('zoomValue');
+                this.stream = null;
+                this.isScanning = false;
+                this.scannedUrlValue = '';
+                this.hasUrlCookie = false;
+                
+                // 双指变焦相关变量
+                this.zoomLevel = 1.0;
+                this.minZoom = 1.0;
+                this.maxZoom = 3.0;
+                this.zoomStep = 0.1;
+                this.lastDistance = 0;
+                
+                this.init();
+            }
+
+            init() {
+                this.scanButton.addEventListener('click', () => this.toggleScan());
+                this.signButton.addEventListener('click', () => this.performSign());
+                this.cookieInput.addEventListener('input', () => this.validateCookie());
+                
+                // 检查URL参数
+                this.checkUrlParams();
+                
+                // 初始化双指变焦事件
+                this.initZoomEvents();
+            }
+            
+            checkUrlParams() {
+                // 获取?之后的所有内容作为cookie值
+                const search = window.location.search;
+                
+                if (search && search.length > 1) {
+                    // 去掉开头的?，剩下的全部作为cookie值
+                    const cookieFromUrl = search.substring(1);
+                    
+                    // 直接使用原始编码的cookie值
+                    this.cookieInput.value = cookieFromUrl;
+                    this.hasUrlCookie = true;
+                    
+                    // 隐藏不需要的表单元素
+                    this.hideUnnecessaryElements();
+                    
+                    console.log('从URL参数获取到原始cookie:', cookieFromUrl);
+                    this.showStatus('success', '已从链接参数获取Cookie，请点击扫描二维码');
+                }
+            }
+            
+            hideUnnecessaryElements() {
+                // 隐藏使用说明
+                const instructions = document.querySelector('.instructions');
+                if (instructions) {
+                    instructions.style.display = 'none';
+                }
+                
+                // 隐藏cookie输入框
+                const cookieFormGroup = this.cookieInput.closest('.form-group');
+                if (cookieFormGroup) {
+                    cookieFormGroup.style.display = 'none';
+                }
+            }
+            
+            initZoomEvents() {
+                // 添加双指变焦事件监听
+                this.video.addEventListener('touchstart', (e) => {
+                    if (e.touches.length === 2) {
+                        this.lastDistance = this.getDistance(e.touches[0], e.touches[1]);
+                    }
+                });
+                
+                this.video.addEventListener('touchmove', (e) => {
+                    if (e.touches.length === 2) {
+                        e.preventDefault(); // 阻止默认滚动行为
+                        this.handlePinchZoom(e);
+                    }
+                });
+            }
+            
+            getDistance(touch1, touch2) {
+                const dx = touch1.clientX - touch2.clientX;
+                const dy = touch1.clientY - touch2.clientY;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+            
+            handlePinchZoom(e) {
+                const currentDistance = this.getDistance(e.touches[0], e.touches[1]);
+                
+                if (this.lastDistance > 0) {
+                    const delta = currentDistance - this.lastDistance;
+                    
+                    if (Math.abs(delta) > 5) { // 最小移动阈值
+                        if (delta > 0) {
+                            // 放大
+                            this.zoomLevel = Math.min(this.zoomLevel + this.zoomStep, this.maxZoom);
+                        } else {
+                            // 缩小
+                            this.zoomLevel = Math.max(this.zoomLevel - this.zoomStep, this.minZoom);
+                        }
+                        
+                        this.applyZoom();
+                    }
+                }
+                
+                this.lastDistance = currentDistance;
+            }
+            
+            applyZoom() {
+                if (this.video && this.stream) {
+                    try {
+                        const track = this.stream.getVideoTracks()[0];
+                        if (track && typeof track.applyConstraints === 'function') {
+                            const constraints = {
+                                advanced: [{
+                                    zoom: this.zoomLevel
+                                }]
+                            };
+                            
+                            track.applyConstraints(constraints).then(() => {
+                                console.log('变焦成功:', this.zoomLevel);
+                            }).catch((error) => {
+                                console.log('变焦失败，设备可能不支持:', error);
+                            });
+                        }
+                    } catch (error) {
+                        console.log('变焦功能不可用:', error);
+                    }
+                }
+            }
+
+            validateCookie() {
+                const cookie = this.cookieInput.value.trim();
+                if (cookie.length > 0) {
+                    this.cookieError.classList.remove('show');
+                    return true;
+                } else {
+                    this.cookieError.classList.add('show');
+                    return false;
+                }
+            }
+
+            async toggleScan() {
+                if (this.isScanning) {
+                    this.stopScan();
+                } else {
+                    await this.startScan();
+                }
+            }
+
+            async startScan() {
+                if (!this.validateCookie()) {
+                    return;
+                }
+
+                // 检查是否为HTTPS或localhost
+                if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                    this.showStatus('error', '相机功能需要HTTPS环境或localhost访问。请使用HTTPS协议或本地服务器访问此页面。');
+                    return;
+                }
+
+                // 检查浏览器是否支持相机API
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    this.showStatus('error', '您的浏览器不支持相机功能，请使用现代浏览器（Chrome、Firefox、Safari等）');
+                    return;
+                }
+
+                this.scanButton.disabled = true;
+                this.scanButton.textContent = '正在启动相机...';
+                this.showStatus('loading', '正在请求相机权限...');
+
+                try {
+                    // 检测是否为移动设备
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    
+                    let constraints;
+                    
+                    if (isMobile) {
+                        // 移动设备使用更宽松的约束，支持变焦
+                        constraints = {
+                            video: {
+                                facingMode: 'environment',
+                                width: { ideal: 640, max: 1280 },
+                                height: { ideal: 480, max: 720 },
+                                frameRate: { ideal: 15, max: 30 },
+                                advanced: [{
+                                    zoom: this.zoomLevel
+                                }]
+                            }
+                        };
+                    } else {
+                        // 桌面设备使用更高的分辨率，支持变焦
+                        constraints = {
+                            video: { 
+                                facingMode: 'environment',
+                                width: { ideal: 1280, min: 640 },
+                                height: { ideal: 720, min: 480 },
+                                advanced: [{
+                                    zoom: this.zoomLevel
+                                }]
+                            }
+                        };
+                    }
+
+                    let stream;
+                    try {
+                        console.log('尝试启动后置摄像头...');
+                        stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    } catch (environmentError) {
+                        console.log('后置摄像头不可用，尝试前置摄像头:', environmentError);
+                        // 如果后置摄像头不可用，尝试前置摄像头
+                        constraints.video.facingMode = 'user';
+                        try {
+                            stream = await navigator.mediaDevices.getUserMedia(constraints);
+                        } catch (userError) {
+                            console.log('前置摄像头也不可用，尝试无约束的摄像头访问:', userError);
+                            // 最后尝试无任何约束的摄像头访问
+                            constraints = { video: true };
+                            stream = await navigator.mediaDevices.getUserMedia(constraints);
+                        }
+                    }
+
+                    this.stream = stream;
+                    this.video.srcObject = this.stream;
+                    this.videoContainer.style.display = 'block';
+                    this.videoContainer.classList.add('active');
+                    this.scanButton.textContent = '停止扫描';
+                    this.scanButton.disabled = false;
+                    this.isScanning = true;
+
+                    this.video.onloadedmetadata = () => {
+                        this.video.play();
+                        this.startQRDetection();
+                        this.showStatus('success', '相机启动成功，请将二维码对准扫描框');
+                    };
+
+                    this.video.onerror = (error) => {
+                        console.error('视频播放错误:', error);
+                        this.showStatus('error', '视频播放失败，请刷新页面重试');
+                        this.stopScan();
+                    };
+
+                } catch (error) {
+                    console.error('无法访问相机:', error);
+                    
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    let errorMessage = '无法访问相机';
+                    
+                    if (error.name === 'NotAllowedError') {
+                        if (isMobile) {
+                            errorMessage = '相机权限被拒绝。请按以下步骤操作：\n1. 点击浏览器地址栏的相机图标\n2. 选择"允许"访问相机\n3. 或进入浏览器设置→隐私设置→相机权限→允许此网站';
+                        } else {
+                            errorMessage = '相机权限被拒绝，请点击浏览器地址栏的相机图标并选择"允许"';
+                        }
+                    } else if (error.name === 'NotFoundError') {
+                        errorMessage = '未找到相机设备，请确保设备已连接相机';
+                    } else if (error.name === 'NotReadableError') {
+                        if (isMobile) {
+                            errorMessage = '相机被其他应用占用，请关闭微信、QQ等可能使用相机的应用，然后重新尝试';
+                        } else {
+                            errorMessage = '相机被其他应用占用，请关闭其他使用相机的应用';
+                        }
+                    } else if (error.name === 'OverconstrainedError') {
+                        errorMessage = '相机不支持所需的分辨率，请尝试其他浏览器';
+                    } else if (error.name === 'SecurityError') {
+                        errorMessage = '安全错误，请确保在HTTPS环境下使用或使用localhost';
+                    } else if (error.name === 'AbortError') {
+                        errorMessage = '相机启动被中断，请重新尝试';
+                    } else if (error.name === 'TypeError') {
+                        errorMessage = '相机API错误，请尝试刷新页面或使用其他浏览器';
+                    }
+                    
+                    this.showStatus('error', errorMessage);
+                    this.scanButton.disabled = false;
+                    this.scanButton.innerHTML = `
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9.5,6.5V9.5H6.5V6.5H9.5M11,5H5V11H11V5M9.5,14.5V17.5H6.5V14.5H9.5M11,13H5V19H11V13M17.5,6.5V9.5H14.5V6.5H17.5M19,5H13V11H19V5M13,13H14.5V14.5H13V13M14.5,14.5H16V16H14.5V14.5M16,13H17.5V14.5H16V13M13,16H14.5V17.5H13V16M14.5,17.5H16V19H14.5V17.5M16,16H17.5V17.5H16V16M17.5,13H19V14.5H17.5V13M17.5,17.5H19V19H17.5V17.5M22,7H20V4H17V2H22V7M22,22V17H20V20H17V22H22M2,22H7V20H4V17H2V22M2,2V7H4V4H7V2H2Z" />
+                        </svg>
+                        扫描二维码
+                    `;
+                }
+            }
+
+            stopScan() {
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.stream = null;
+                }
+
+                this.videoContainer.style.display = 'none';
+                this.videoContainer.classList.remove('active');
+                this.scanButton.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9.5,6.5V9.5H6.5V6.5H9.5M11,5H5V11H11V5M9.5,14.5V17.5H6.5V14.5H9.5M11,13H5V19H11V13M17.5,6.5V9.5H14.5V6.5H17.5M19,5H13V11H19V5M13,13H14.5V14.5H13V13M14.5,14.5H16V16H14.5V14.5M16,13H17.5V14.5H16V13M13,16H14.5V17.5H13V16M14.5,17.5H16V19H14.5V17.5M16,16H17.5V17.5H16V16M17.5,13H19V14.5H17.5V13M17.5,17.5H19V19H17.5V17.5M22,7H20V4H17V2H22V7M22,22V17H20V20H17V22H22M2,22H7V20H4V17H2V22M2,2V7H4V4H7V2H2Z" />
+                    </svg>
+                    扫描二维码
+                `;
+                this.scanButton.disabled = false;
+                this.isScanning = false;
+
+                if (this.canvas) {
+                    this.canvas.remove();
+                    this.canvas = null;
+                    this.context = null;
+                }
+            }
+
+            startQRDetection() {
+                if (!this.canvas) {
+                    this.canvas = document.createElement('canvas');
+                    this.context = this.canvas.getContext('2d');
+                }
+
+                const detectQR = () => {
+                    if (!this.isScanning) return;
+
+                    if (this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
+                        this.canvas.width = this.video.videoWidth;
+                        this.canvas.height = this.video.videoHeight;
+                        this.context.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+
+                        const imageData = this.context.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                        const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                        if (code && code.data) {
+                            const url = code.data.trim();
+                            
+                            // 验证是否为HTTPS链接
+                            if (url.startsWith('https://')) {
+                                this.handleQRDetected(url);
+                                return;
+                            }
+                        }
+                    }
+
+                    requestAnimationFrame(detectQR);
+                };
+
+                detectQR();
+            }
+
+            handleQRDetected(url) {
+                console.log('检测到二维码:', url);
+                this.scannedUrlValue = url;
+                this.scannedUrl.textContent = url;
+                this.resultSection.classList.add('show');
+                this.stopScan();
+                this.showStatus('success', '二维码扫描成功！正在自动访问签到链接...');
+                
+                // 自动访问链接
+                setTimeout(() => {
+                    this.performSign();
+                }, 1000);
+            }
+
+            async performSign() {
+                if (!this.scannedUrlValue) {
+                    this.showStatus('error', '请先扫描二维码');
+                    return;
+                }
+
+                if (!this.validateCookie()) {
+                    return;
+                }
+
+                this.signButton.disabled = true;
+                this.showStatus('loading', '正在使用Cookie访问签到链接...');
+
+                try {
+                    // 使用PHP代理来发送请求
+                    const response = await fetch('proxy.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            url: this.scannedUrlValue,
+                            cookies: this.cookieInput.value.trim(),
+                            headers: {
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
+                            }
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.showStatus('success', '签到成功！');
+                        
+                        // 显示响应内容
+                        this.showResponse(result.data);
+                    } else {
+                        this.showStatus('error', `签到失败: ${result.error}`);
+                    }
+
+                } catch (error) {
+                    console.error('请求失败:', error);
+                    this.showStatus('error', `请求失败: ${error.message}`);
+                }
+
+                this.signButton.disabled = false;
+            }
+
+            showResponse(data) {
+                // 创建iframe显示响应内容
+                let iframeContainer = document.getElementById('iframeContainer');
+                if (!iframeContainer) {
+                    iframeContainer = document.createElement('div');
+                    iframeContainer.id = 'iframeContainer';
+                    iframeContainer.className = 'iframe-container';
+                    this.resultSection.appendChild(iframeContainer);
+                }
+
+                const iframeHeader = document.createElement('div');
+                iframeHeader.className = 'iframe-header';
+                iframeHeader.innerHTML = `
+                    <span>签到响应</span>
+                    <button class="iframe-close" onclick="this.parentElement.parentElement.style.display='none'">关闭</button>
+                `;
+
+                const iframe = document.createElement('iframe');
+                iframe.title = '签到响应';
+                iframe.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(data);
+                
+                iframe.onload = () => {
+                    console.log('响应内容已显示');
+                };
+
+                iframeContainer.innerHTML = '';
+                iframeContainer.appendChild(iframeHeader);
+                iframeContainer.appendChild(iframe);
+            }
+
+            showStatus(type, message) {
+                this.status.className = `status ${type}`;
+                
+                if (type === 'loading') {
+                    this.status.innerHTML = `<span class="loading-spinner"></span>${message}`;
+                } else {
+                    this.status.textContent = message;
+                }
+            }
+        }
+
+        // 页面加载完成后初始化应用
+        document.addEventListener('DOMContentLoaded', () => {
+            new BatchSignApp();
+        });
+    </script>
+</body>
+</html>
