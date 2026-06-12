@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>使用说明 - TongJi Canvas 签到</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --blue: #0064E0;
+            --blue-deep: #0457CB;
+            --blue-light: #E8F2FF;
+            --green: #31A24C;
+            --ink: #1C1E21;
+            --gray: #65676B;
+            --bg: #F0F2F5;
+            --white: #FFFFFF;
+            --border: #DADDE1;
+            --font: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--ink);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Nav ── */
+        .nav {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            height: 56px;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 24px;
+        }
+        .nav-brand { font-size: 17px; font-weight: 700; color: var(--ink); text-decoration: none; }
+        .nav-links { display: flex; gap: 8px; }
+        .nav-link {
+            font-size: 13px; font-weight: 700;
+            color: var(--ink); text-decoration: none;
+            padding: 7px 14px; border-radius: 100px;
+            border: 1px solid var(--border);
+            transition: background 0.15s;
+        }
+        .nav-link:hover { background: var(--bg); }
+        .nav-link--active { background: var(--ink); color: var(--white); border-color: var(--ink); }
+        .nav-link--blue { background: var(--blue); color: var(--white); border-color: var(--blue); }
+        .nav-link--blue:hover { background: var(--blue-deep); border-color: var(--blue-deep); }
+
+        /* ── Hero ── */
+        .hero {
+            background: linear-gradient(135deg, var(--blue) 0%, #0091FF 100%);
+            color: var(--white);
+            padding: 56px 24px 48px;
+            text-align: center;
+        }
+        .hero-title { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+        .hero-sub { font-size: 15px; opacity: 0.85; }
+
+        /* ── Content ── */
+        .content { max-width: 700px; margin: -24px auto 0; padding: 0 16px 64px; position: relative; }
+
+        /* ── Card ── */
+        .card {
+            background: var(--white);
+            border-radius: 16px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+        .card-title {
+            font-size: 20px; font-weight: 700;
+            color: var(--ink); margin-bottom: 4px;
+        }
+        .card-desc { font-size: 14px; color: var(--gray); margin-bottom: 20px; }
+
+        /* ── Steps ── */
+        .step { margin-bottom: 24px; }
+        .step:last-child { margin-bottom: 0; }
+        .step-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+        .step-num {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: var(--blue); color: var(--white);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; font-weight: 700; flex-shrink: 0;
+        }
+        .step-title { font-size: 16px; font-weight: 700; }
+        .step-body { font-size: 14px; color: var(--gray); line-height: 1.65; padding-left: 40px; text-align: justify; }
+        .step-body p { margin-bottom: 8px; }
+        .step-body p:last-child { margin-bottom: 0; }
+        .step-body code {
+            background: var(--blue-light); color: var(--blue);
+            padding: 1px 6px; border-radius: 4px; font-size: 13px;
+        }
+        .step-body strong { color: var(--ink); }
+
+        /* ── Image ── */
+        .img-ph {
+            margin: 12px 0;
+        }
+        .img-ph img {
+            width: 100%;
+            border-radius: 12px;
+            display: block;
+        }
+
+        /* ── Tip ── */
+        .tip {
+            background: var(--blue-light);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-top: 12px;
+            margin-left: 40px;
+            max-width: calc(100% - 40px);
+        }
+        .tip-label { font-size: 11px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .tip-text { font-size: 13px; color: var(--gray); line-height: 1.5; text-align: justify; }
+
+        /* ── FAQ ── */
+        .faq { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
+        .faq-q {
+            width: 100%; display: flex; justify-content: space-between; align-items: center;
+            padding: 16px; background: var(--white); border: none;
+            cursor: pointer; font-family: var(--font);
+            font-size: 15px; font-weight: 700; color: var(--ink);
+            text-align: left; gap: 12px; transition: background 0.15s;
+        }
+        .faq-q:hover { background: var(--bg); }
+        .faq-arrow { width: 18px; height: 18px; color: var(--gray); transition: transform 0.2s; flex-shrink: 0; }
+        .faq.open .faq-arrow { transform: rotate(180deg); }
+        .faq-a { display: none; padding: 0 16px 16px; font-size: 14px; color: var(--gray); line-height: 1.6; text-align: justify; }
+        .faq.open .faq-a { display: block; }
+
+        /* ── Alert ── */
+        .alert {
+            background: var(--blue-light);
+            border-radius: 12px; padding: 16px;
+            margin-top: 12px;
+        }
+        .alert-label { font-size: 11px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .alert-text { font-size: 14px; color: var(--gray); line-height: 1.5; }
+        .alert-text a { color: var(--blue); text-decoration: none; font-weight: 700; }
+        .alert-text a:hover { text-decoration: underline; }
+
+        /* ── Footer ── */
+        .footer { text-align: center; padding: 0 16px 40px; }
+        .footer-links { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
+        .footer-link { font-size: 13px; font-weight: 700; color: var(--gray); text-decoration: none; line-height: 1.4;}
+        .footer-link:hover { color: var(--ink); }
+        .footer-copy { font-size: 12px; color: #BCC0C4; }
+
+        @media (max-width: 480px) {
+            .hero { padding: 36px 16px 32px; }
+            .hero-title { font-size: 24px; }
+            .hero-sub { font-size: 13px; }
+            .content { margin-top: -16px; padding: 0 10px 40px; }
+            .card { padding: 14px; margin-bottom: 10px; border-radius: 12px; }
+            .card-title { font-size: 17px; }
+            .card-desc { font-size: 13px; margin-bottom: 14px; }
+            .step { margin-bottom: 16px; }
+            .step-body { padding-left: 0; font-size: 13px; }
+            .img-ph { margin: 8px 0; }
+            .tip { margin-left: 0; max-width: 100%; padding: 10px 12px; }
+            .step-num { width: 24px; height: 24px; font-size: 12px; }
+            .step-title { font-size: 14px; }
+            .faq-q { padding: 12px; font-size: 14px; }
+            .faq-a { padding: 0 12px 12px; }
+        }
+    </style>
+</head>
+<body>
+
+
+<div class="hero">
+    <h1 class="hero-title">📖 使用说明</h1>
+    <div class="hero-sub">两步搞定：拿到 Cookie → 粘贴签到</div>
+</div>
+
+<main class="content">
+
+    <!-- 步骤 -->
+    <div class="card">
+        <div class="step">
+            <div class="step-head">
+                <div class="step-num">1</div>
+                <div class="step-title">拿到你的 Cookie</div>
+            </div>
+            <div class="step-body">
+                <p>打开<a href="https://canvas.tongji.edu.cn" target="_blank" rel="noopener">同济 Canvas</a> 登录后，进到<strong>任意课程页面</strong>。</p>
+                <p>按 <strong>F12</strong> → 切到 <strong>Application</strong> → 左侧 <strong>Cookies</strong> → 找到 <code>_canvas_middle_session</code> → <strong>复制完整值</strong>。找不到就先进到“点名签到”的选项卡，再按F12一定有，多刷新几次。</p>
+                <div class="img-ph"><img src="./1.png" alt="在开发者工具中复制 Cookie"></div>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-head">
+                <div class="step-num">2</div>
+                <div class="step-title">粘贴并签到</div>
+            </div>
+            <div class="step-body">
+                <p><strong>方式一：</strong>回到本页面，把 Cookie 粘贴到输入框，点签到。</p>
+                <div class="img-ph"><img src="./2.png" alt="粘贴 Cookie 输入框"></div>
+                <p><strong>方式二（推荐）：</strong>把 Cookie 拼到 URL 里，以后打开就自动跳过输入，只剩一个扫码按钮：</p>
+                <p><code>https://handsome.eu.org/canvas/index.html?_canvas_middle_session=你的Cookie</code></p>
+                <div class="img-ph"><img src="./3.png" alt="URL 方式直接扫码"></div>
+            </div>
+            <div class="tip">
+            <div class="tip-text">推荐每个人都用方式二构造自己的 URL，永久使用，不会过期。转发给对方打开就能直接扫码。</div>
+        </div>
+        </div>
+    </div>
+
+    <!-- 测试 -->
+    <div class="card">
+        <div class="card-title">先试试能不能用</div>
+        <div class="card-desc">扫下面这个测试二维码，确认工具正常工作</div>
+        <div class="step-body" style="padding-left:0;">
+            <div class="img-ph"><img src="./qrcode.png" alt="测试二维码"></div>
+            <p>扫码后自动签到，正常应显示：未加入此课程：</p>
+            <p>🟢 <strong style="color:#22C55E">签到成功</strong> — 搞定<br>
+               🔵 <strong style="color:#06B6D4">已签过到</strong> — 你已经签过了<br>
+               🔴 <strong style="color:#EF4444">签到失败</strong> — 若返回了登陆页，说明你找的Cookie有问题</p>
+        </div>
+        <div class="tip">
+            <div class="tip-label">💡 提示</div>
+            <div class="tip-text">手机可以<strong>双指缩放</strong>放大二维码，距离远也能扫。光线好 + 二维码居中 = 秒扫。</div>
+        </div>
+    </div>
+
+    <!-- 常见问题 -->
+    <div class="card">
+        <div class="card-title">常见问题</div>
+
+        <div class="faq">
+            <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+                <span>相机打不开？</span>
+                <svg class="faq-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-a">推荐用 <strong>Safari</strong> 或 <strong>Chrome</strong> 浏览器打开。检查：① 浏览器有摄像头权限；② 浏览器弹了权限窗口要点"允许"；③ 摄像头没被别的 app 占。扫描在弹窗里进行，记得<strong>允许弹窗</strong>。</div>
+        </div>
+
+        <div class="faq">
+            <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+                <span>扫不到二维码？</span>
+                <svg class="faq-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-a">① 让二维码占画面 <strong>1/3 ~ 1/2</strong>，别太小；② 光线要够，避免反光；③ 手机双指放大，用的是光学变焦不会糊。</div>
+        </div>
+
+        <div class="faq">
+            <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+                <span>签到失败？</span>
+                <svg class="faq-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-a">最常见：<strong>签到超时</strong>，教室里人比较多，网络不稳定。一定要多试几次。</div>
+        </div>
+
+        <div class="faq">
+            <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+                <span>Cookie 怎么拿？</span>
+                <svg class="faq-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-a">看步骤 1 的截图照着来。简单说：Canvas 登录状态 → F12 → Application → Cookies → 找 <code>_canvas_middle_session</code> → 复制值。</div>
+        </div>
+    </div>
+
+    <!-- 注意事项 -->
+    <div class="card">
+        <div class="card-title">注意事项</div>
+        <div class="step-body" style="padding-left:0;">
+            <p>本项目还有安卓版apk，特别好用。</p>
+            <p>⚠️ <strong>免责：</strong>仅供学习交流，请遵守学校规定，后果自负。</p>
+            <p>⭐ <strong>开源：</strong>欢迎 Issue / PR， 我要Star[伸手] 球球了</p>
+        </div>
+        <div class="alert" style="margin-bottom:8px;">
+            <div class="alert-label">🤖 安卓版</div>
+            <div class="alert-text">
+                <a href="https://github.com/mmmlllnnn/TongJi_Canvas" target="_blank" rel="noopener">github.com/mmmlllnnn/TongJi_Canvas</a>
+                &nbsp;·&nbsp; 特别好用，强烈推荐
+            </div>
+        </div>
+        <div class="alert">
+            <div class="alert-label">🌐 Web 版</div>
+            <div class="alert-text">
+                <a href="https://github.com/mmmlllnnn/TongJi_Canvas_Web" target="_blank" rel="noopener">github.com/mmmlllnnn/TongJi_Canvas_Web</a>
+                &nbsp;·&nbsp; 轻量化，省心。
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<footer class="footer">
+    <div class="footer-links">
+        <a class="footer-link" href="index.html">返回签到</a>
+        <a class="footer-link" href="https://github.com/mmmlllnnn/TongJi_Canvas" target="_blank" rel="noopener">GitHub</a>
+        <a class="footer-link" href="https://github.com/mmmlllnnn/TongJi_Canvas/issues" target="_blank" rel="noopener">反馈问题</a>
+        <a class="footer-link" href="https://github.com/mmmlllnnn/TongJi_Canvas/pulls" target="_blank" rel="noopener">PR</a>
+    </div>
+    <p class="footer-copy">开源项目 · 仅供学习交流</p>
+</footer>
+
+</body>
+</html>

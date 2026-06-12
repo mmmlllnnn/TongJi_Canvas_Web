@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>扫描二维码</title>
+    <!-- CDN + 本地回退 -->
+    <script>
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = src;
+                s.onload = resolve;
+                s.onerror = reject;
+                document.head.appendChild(s);
+            });
+        }
+        async function loadWithFallback(cdn, local, check) {
+            try {
+                await loadScript(cdn);
+                if (!check()) throw new Error('global missing');
+            } catch {
+                await loadScript(local);
+            }
+        }
+        var _deps = Promise.all([
+            loadWithFallback(
+                'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js',
+                './html5-qrcode.min.js',
+                () => typeof Html5Qrcode !== 'undefined'
+            ),
+            loadWithFallback(
+                'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js',
+                './jsQR.js',
+                () => typeof jsQR !== 'undefined'
+            )
+        ]);
+    </script>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --blue: #0064E0;
+            --ink: #1C1E21;
+            --white: #FFFFFF;
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        html, body { height: 100%; overflow: hidden; }
+        body {
+            font-family: var(--font);
+            background: #000;
+            color: var(--white);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            flex-shrink: 0; z-index: 10;
+        }
+        .header-title { font-size: 15px; font-weight: 700; }
+        .close-btn {
+            background: rgba(255,255,255,0.15); border: none; color: #fff;
+            width: 30px; height: 30px; border-radius: 50%;
+            font-size: 16px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Camera */
+        .camera { flex: 1; position: relative; overflow: hidden; touch-action: none; }
+        #qr-reader { width: 100%; height: 100%; }
+        #qr-reader video {
+            width: 100% !important; height: 100% !important;
+            object-fit: cover !important; display: block !important;
+        }
+        #qr-reader__scan_region { min-height: 100% !important; }
+        #qr-reader__dashboard { display: none !important; }
+        #qr-reader img[alt="Info icon"] { display: none !important; }
+        #qr-reader__header_message { display: none !important; }
+        #qr-reader__scan_region > br { display: none !important; }
+
+        /* Scan frame */
+        .frame {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 220px; height: 220px;
+            pointer-events: none; z-index: 5;
+        }
+        .frame::before {
+            content: ''; position: absolute; inset: -2px;
+            border: 2.5px solid var(--blue); border-radius: 14px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse { 0%,100%{opacity:.35} 50%{opacity:1} }
+        .frame::after {
+            content: ''; position: absolute; inset: -2px; border-radius: 14px;
+            background:
+                linear-gradient(var(--blue),var(--blue)) top left    / 22px 3px no-repeat,
+                linear-gradient(var(--blue),var(--blue)) top left    / 3px 22px no-repeat,
+                linear-gradient(var(--blue),var(--blue)) top right   / 22px 3px no-repeat,
+                linear-gradient(var(--blue),var(--blue)) top right   / 3px 22px no-repeat,
+                linear-gradient(var(--blue),var(--blue)) bottom left / 22px 3px no-repeat,
+                linear-gradient(var(--blue),var(--blue)) bottom left / 3px 22px no-repeat,
+                linear-gradient(var(--blue),var(--blue)) bottom right/ 22px 3px no-repeat,
+                linear-gradient(var(--blue),var(--blue)) bottom right/ 3px 22px no-repeat;
+        }
+
+        /* Zoom hint above frame */
+        .zoom-hint {
+            position: absolute;
+            top: calc(50% - 130px);
+            left: 50%; transform: translate(-50%, -100%);
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            padding: 8px 18px; border-radius: 100px;
+            font-size: 13px; font-weight: 600; color: #fff;
+            z-index: 6; pointer-events: none;
+            white-space: nowrap;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        .zoom-hint svg {
+            vertical-align: -2px; margin-right: 4px;
+        }
+
+        /* Zoom indicator */
+        .zoom-badge {
+            position: absolute; top: 12px; right: 12px;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            padding: 5px 10px; border-radius: 20px;
+            font-size: 13px; font-weight: 700; color: #fff;
+            z-index: 6; opacity: 0; transition: opacity .2s;
+            pointer-events: none;
+        }
+        .zoom-badge.show { opacity: 1; }
+
+        /* Bottom */
+        .bottom {
+            padding: 14px 16px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            text-align: center; flex-shrink: 0; z-index: 10;
+        }
+        .hint { font-size: 13px; color: rgba(255,255,255,.6); }
+        .msg {
+            font-size: 13px; font-weight: 600; margin-bottom: 6px;
+            display: none;
+        }
+        .msg.show { display: block; }
+        .msg--ok { color: #4ADE80; }
+        .msg--err { color: #F87171; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <span class="header-title">扫描签到二维码</span>
+    <button class="close-btn" id="closeBtn">✕</button>
+</div>
+
+<div class="camera" id="cameraArea">
+    <div id="qr-reader"></div>
+    <div class="frame"></div>
+    <div class="zoom-hint">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="11" y1="8" x2="11" y2="14"/></svg>
+        双指捏合可变焦 大幅提升速度
+    </div>
+    <div class="zoom-badge" id="zoomBadge">1.0×</div>
+</div>
+
+<div class="bottom">
+    <div class="msg" id="msg"></div>
+    <div class="hint">全画面自动识别，对准即可</div>
+</div>
+
+<script>
+(function () {
+    const cameraArea = document.getElementById('cameraArea');
+    const msg = document.getElementById('msg');
+    const zoomBadge = document.getElementById('zoomBadge');
+    const closeBtn = document.getElementById('closeBtn');
+
+    let qr = null;
+    let active = false;
+    let videoTrack = null;
+    let zoomCap = null;  // { min, max, step }
+    let currentZoom = 1;
+    let zoomTimer = null;
+    let stopEnhanced = null;
+
+    closeBtn.addEventListener('click', () => window.close());
+
+    function showMsg(type, text) {
+        msg.className = `msg show msg--${type}`;
+        msg.textContent = text;
+    }
+
+    // ── Get video track & zoom capabilities ──
+    function attachTrack(stream) {
+        videoTrack = stream.getVideoTracks()[0];
+        if (!videoTrack) return;
+
+        const caps = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+        if (caps.zoom && caps.zoom.max > caps.zoom.min) {
+            zoomCap = {
+                min: caps.zoom.min || 1,
+                max: caps.zoom.max,
+                step: caps.zoom.step || 0.1
+            };
+            currentZoom = zoomCap.min;
+            applyZoom(currentZoom);
+        }
+    }
+
+    let targetZoom = 1;
+    let zoomRafPending = false;
+
+    function applyZoom(val) {
+        if (!videoTrack || !zoomCap) return;
+        val = Math.max(zoomCap.min, Math.min(zoomCap.max, val));
+        targetZoom = val;
+        currentZoom = val;
+
+        // Update UI immediately
+        zoomBadge.textContent = val.toFixed(1) + '×';
+        zoomBadge.classList.add('show');
+        clearTimeout(zoomTimer);
+        zoomTimer = setTimeout(() => zoomBadge.classList.remove('show'), 1200);
+
+        // Throttle camera constraint to once per frame
+        if (!zoomRafPending) {
+            zoomRafPending = true;
+            requestAnimationFrame(() => {
+                zoomRafPending = false;
+                videoTrack.applyConstraints({ advanced: [{ zoom: targetZoom }] }).catch(() => {});
+            });
+        }
+    }
+
+    // ── Pinch-to-zoom ──
+    let pinchStartDist = 0;
+    let pinchStartZoom = 1;
+    let isPinching = false;
+    let pinchEndTimer = null;
+
+    function dist(t1, t2) {
+        const dx = t1.clientX - t2.clientX;
+        const dy = t1.clientY - t2.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    cameraArea.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+            isPinching = true;
+            clearTimeout(pinchEndTimer);
+            pinchStartDist = dist(e.touches[0], e.touches[1]);
+            pinchStartZoom = currentZoom;
+        }
+    }, { passive: false });
+
+    cameraArea.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2 && zoomCap && pinchStartDist > 0) {
+            e.preventDefault();
+            const d = dist(e.touches[0], e.touches[1]);
+            const scale = d / pinchStartDist;
+            applyZoom(pinchStartZoom * scale);
+        }
+    }, { passive: false });
+
+    cameraArea.addEventListener('touchend', (e) => {
+        if (e.touches.length < 2) {
+            pinchStartDist = 0;
+            // Delay releasing isPinching so scanner doesn't spike immediately
+            pinchEndTimer = setTimeout(() => { isPinching = false; }, 700);
+        }
+    });
+
+    // ── Mouse wheel zoom (desktop) ──
+    cameraArea.addEventListener('wheel', (e) => {
+        if (!zoomCap) return;
+        e.preventDefault();
+        const step = (zoomCap.step || 0.1) * 5;
+        applyZoom(currentZoom + (e.deltaY < 0 ? step : -step));
+    }, { passive: false });
+
+    // ── Enhanced scan: crop-to-frame + upsample jsQR ──
+    function startEnhancedScan(videoEl) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const upCanvas = document.createElement('canvas');
+        const upCtx = upCanvas.getContext('2d', { willReadFrequently: true });
+        const SCALE = 2;
+        // Crop region ratio relative to video size (center crop)
+        // 0.55 = scan area is ~55% of video dimensions, centered on the frame
+        const CROP_RATIO = 0.55;
+
+        let scanning = true;
+        let lastDecoded = '';
+        let frameCount = 0;
+        let cropW = 0, cropH = 0;
+
+        function tick() {
+            if (!scanning || !active) return;
+
+            frameCount++;
+
+            const skipFrames = isPinching ? 36 : 5; // ~600ms pinching, ~80ms normal
+            if (frameCount % skipFrames !== 0) {
+                requestAnimationFrame(tick);
+                return;
+            }
+
+            if (videoEl.readyState >= videoEl.HAVE_ENOUGH_DATA) {
+                const vw = videoEl.videoWidth;
+                const vh = videoEl.videoHeight;
+
+                // Center crop region in video coordinates
+                cropW = Math.round(vw * CROP_RATIO);
+                cropH = Math.round(vh * CROP_RATIO);
+                const sx = Math.round((vw - cropW) / 2);
+                const sy = Math.round((vh - cropH) / 2);
+
+                canvas.width = cropW;
+                canvas.height = cropH;
+
+                // ── Pass 1: cropped native ──
+                ctx.drawImage(videoEl, sx, sy, cropW, cropH, 0, 0, cropW, cropH);
+                const imgData = ctx.getImageData(0, 0, cropW, cropH);
+                const code1 = jsQR(imgData.data, cropW, cropH, { inversionAttempts: 'dontInvert' });
+                if (code1 && code1.data && code1.data !== lastDecoded) {
+                    lastDecoded = code1.data;
+                    onScan(code1.data);
+                    scanning = false;
+                    return;
+                }
+
+                // ── Pass 2: cropped + 2× upscale (every 2nd cycle) ──
+                if (frameCount % (skipFrames * 2) === 0) {
+                    const uw = cropW * SCALE;
+                    const uh = cropH * SCALE;
+                    upCanvas.width = uw;
+                    upCanvas.height = uh;
+                    upCtx.imageSmoothingEnabled = true;
+                    upCtx.imageSmoothingQuality = 'high';
+                    upCtx.drawImage(videoEl, sx, sy, cropW, cropH, 0, 0, uw, uh);
+                    const upData = upCtx.getImageData(0, 0, uw, uh);
+                    const code2 = jsQR(upData.data, uw, uh, { inversionAttempts: 'dontInvert' });
+                    if (code2 && code2.data && code2.data !== lastDecoded) {
+                        lastDecoded = code2.data;
+                        onScan(code2.data);
+                        scanning = false;
+                        return;
+                    }
+                }
+            }
+
+            requestAnimationFrame(tick);
+        }
+
+        requestAnimationFrame(tick);
+        return () => { scanning = false; };
+    }
+
+    // ── Start scanner ──
+    async function start() {
+        try {
+            qr = new Html5Qrcode('qr-reader');
+
+            const isMobile = /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+            const constraints = {
+                facingMode: 'environment',
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            };
+
+            const config = {
+                fps: 30,
+                aspectRatio: isMobile ? undefined : 1.333,
+                disableFlip: false,
+                videoConstraints: constraints,
+                experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+            };
+
+            await qr.start(
+                { facingMode: 'environment' },
+                config,
+                onScan,
+                () => {}
+            );
+
+            active = true;
+
+            // Attach zoom track
+            const videoEl = document.querySelector('#qr-reader video');
+            if (videoEl && videoEl.srcObject) {
+                attachTrack(videoEl.srcObject);
+                // Start enhanced jsQR scan loop (upscale for small codes)
+                stopEnhanced = startEnhancedScan(videoEl);
+            }
+
+        } catch (err) {
+            console.error('Camera error:', err);
+            let text = '无法启动相机';
+            const s = String(err);
+            if (s.includes('NotAllowed') || err.name === 'NotAllowedError') text = '请允许摄像头权限后重试';
+            else if (s.includes('NotFound') || err.name === 'NotFoundError') text = '未检测到摄像头';
+            else if (s.includes('NotReadable') || err.name === 'NotReadableError') text = '摄像头被其他应用占用';
+            showMsg('err', text);
+        }
+    }
+
+    function onScan(text) {
+        const url = (text || '').trim();
+        if (!url.startsWith('https://')) return;
+
+        if (window.opener && !window.opener.closed) {
+            window.opener.postMessage({ type: 'qr_scanned', url: url }, '*');
+        }
+
+        if (stopEnhanced) { stopEnhanced(); stopEnhanced = null; }
+        if (qr && active) { qr.stop().catch(() => {}); active = false; }
+        showMsg('ok', '识别成功 ✓');
+        setTimeout(() => window.close(), 300);
+    }
+
+    window.addEventListener('beforeunload', () => {
+        if (stopEnhanced) { stopEnhanced(); stopEnhanced = null; }
+        if (qr && active) qr.stop().catch(() => {});
+    });
+
+    _deps.then(start);
+})();
+</script>
+</body>
+</html>
