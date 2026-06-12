@@ -32,7 +32,7 @@ https://handsome.eu.org/canvas/index.html?_canvas_middle_session=你的Cookie
 
 ![URL 方式直接扫码](./pic/3.png)
 
-> 💡 提示：推荐每个人构造专属 URL，可永久使用且不会过期，转发给他人打开即可直接扫码。
+> 💡 提示：推荐每个人构造专属 URL，可永久使用不会过期，转发给他人打开即可直接扫码。
 
 ## 功能测试
 扫描下方测试二维码，验证工具是否正常工作：
@@ -48,7 +48,7 @@ https://handsome.eu.org/canvas/index.html?_canvas_middle_session=你的Cookie
 
 ## 常见问题
 ### 📷 相机打不开？
-推荐使用 `Safari` 或 `Chrome` 浏览器打开工具，检查以下项：
+推荐使用 `Safari` 或 `Chrome` 浏览器，检查以下项：
 1. 浏览器已获取摄像头权限；
 2. 浏览器弹出权限请求时选择“允许”；
 3. 摄像头未被其他应用占用；
