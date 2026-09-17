@@ -321,19 +321,13 @@
             <h2>📢 公告</h2>
         </div>
         <div class="modal-body" id="modalBody">
-            <!--
-                ✏️ 在这里填写你的公告内容，支持 HTML
-                每次更新内容时，把下面 JS 中的 CHANGELOG_VERSION +1 即可强制重新弹窗
-            -->
             <ul>
-                <li>本项目还有安卓版，开源，丝滑好用：<a href="https://github.com/mmmlllnnn/TongJi_Canvas" target="_blank" rel="noopener">点击下载</a></li>
-                <!-- <li>web版本来只是个demo，结果发现2个月调用了1300多次，人数远超想象。</li> -->
-                <!-- <li>但是只有4个star，我服了，沉默的大多数😅。所以正式开始维护，希望不要是有人点着玩~</li> -->
+                <li>本项目还有安卓版，开源，丝滑好用，能并发帮多人签到：<a href="https://github.com/mmmlllnnn/TongJi_Canvas" target="_blank" rel="noopener">点击下载</a></li>
                 <li>web版同样开源，轻量化省心。<a href="https://github.com/mmmlllnnn/TongJi_Canvas_Web" target="_blank" rel="noopener">点点star~球球</a></li>
             </ul>
             <p><strong>v1.1 更新</strong></p>
             <ul>
-                <li>重构项目🎉🎉🎉 正式开始维护</li>
+                <li>重构项目🎉🎉🎉 累积使用1500次+ 正式开始维护</li>
                 <li>大幅提升扫描性能，jsQR和qrcode双引擎，支持倾斜二维码、小二维码</li>
                 <li>双指捏合快速变焦</li>
                 <li>但是还没有在不同手机上测试，所以有问题请一定及时反馈。<a href="https://github.com/mmmlllnnn/TongJi_Canvas_Web/issues" target="_blank" rel="noopener">点此反馈</a></li>
@@ -371,7 +365,6 @@
     let isMinimal = false;
 
     // ── Changelog modal ──
-    // ⬇️ 每次更新公告内容时，把这个数字 +1
     const CHANGELOG_VERSION = 1;
     const STORAGE_KEY = 'changelog_dismissed';
 
@@ -399,16 +392,26 @@
     })();
 
     // ── Detect URL cookie ──
-    const search = window.location.search;
-    if (search && search.length > 1) {
-        const raw = search.substring(1);
-        if (raw.includes('=')) {
-            isMinimal = true;
-            document.body.classList.add('minimal');
-            cookieInput.value = raw;
-            markStep(1);
+        // 使用 window.location.href 截取 '?' 后面的原始字符串，避免浏览器自动做 decode
+        const href = window.location.href;
+        const qIndex = href.indexOf('?');
+        if (qIndex !== -1 && qIndex < href.length - 1) {
+            const rawQuery = href.substring(qIndex + 1);
+            if (rawQuery.includes('=')) {
+                isMinimal = true;
+                document.body.classList.add('minimal');
+    
+                // 提取 _canvas_middle_session 参数的原始编码字符串
+                // 匹配 _canvas_middle_session=xxx 直到遇到 & 或 结尾，不做任何 decode
+                const match = rawQuery.match(/(?:^|&)(_canvas_middle_session=[^&]*)/);
+                if (match) {
+                    cookieInput.value = match[1];
+                } else {
+                    cookieInput.value = rawQuery;
+                }
+                markStep(1);
+            }
         }
-    }
 
     // ── Step indicators ──
     function markStep(n) {
