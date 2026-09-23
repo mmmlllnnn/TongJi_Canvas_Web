@@ -1,8 +1,6 @@
 # TongJi_Canvas_Web 
 
-Web版同济大学Canvas系统课堂签到助手 
-
-多多宣传，点点star~ 
+Web版同济大学Canvas系统课堂签到助手  
 
 [在线版访问：https://handsome.eu.org/canvas/index.html](https://handsome.eu.org/canvas/index.html)
 
