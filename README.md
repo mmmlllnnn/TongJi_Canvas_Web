@@ -2,9 +2,9 @@
 
 Web版同济大学Canvas系统课堂签到助手 
 
-多多宣传，点点star~ 
 
-[在线版访问：https://handsome.eu.org/canvas/index.html](https://handsome.eu.org/canvas/index.html)
+
+[在线访问：https://handsome.eu.org/canvas/index.html](https://handsome.eu.org/canvas/index.html)
 
 推荐构造专属 URL，可永久使用，转发给他人打开即可直接扫码签到。
 
@@ -12,9 +12,8 @@ Web版同济大学Canvas系统课堂签到助手
 两步搞定：拿到 Cookie → 粘贴签到
 
 ### 步骤 1：获取你的 Cookie
-1. 打开[同济 Canvas](https://canvas.tongji.edu.cn) 并完成登录，进入**任意课程页面**。
-2. 按下 `F12` 打开开发者工具 → 切换到 `Application` 标签页 → 左侧导航栏找到 `Cookies` → 定位到 `_canvas_middle_session` → **复制完整的值**。
-若找不到该字段，先进入“点名签到”选项卡，再按 `F12`（可多刷新几次）。
+1. 打开 [同济 Canvas](https://canvas.tongji.edu.cn) 并完成登录，进入 [此页面](https://canvas.tongji.edu.cn/lms/mobile/forscan?courseCode=2333&rollCallToken=2333)。
+2. 按下 `F12` 打开开发者工具 → 切换到 `Application` 标签页 → 左侧导航栏找到 `Cookies` → 定位到 `_canvas_middle_session` → **复制完整值(3D%3D结尾)**。
 
 ![在开发者工具中复制 Cookie](./pic/1.png)
 
@@ -71,8 +70,8 @@ https://handsome.eu.org/canvas/index.html?_canvas_middle_session=你的Cookie
 3. ⭐ 开源支持：欢迎提交 Issue / PR，期待你的 Star 支持！
 
 ### 相关链接
-- 🤖 安卓版：[github.com/mmmlllnnn/TongJi_Canvas](https://github.com/mmmlllnnn/TongJi_Canvas)（特别好用，强烈推荐）
-- 🌐 Web 版：[github.com/mmmlllnnn/TongJi_Canvas_Web](https://github.com/mmmlllnnn/TongJi_Canvas_Web)（轻量化，省心）
+- 🤖 安卓版：[TongJi_Canvas](https://github.com/mmmlllnnn/TongJi_Canvas)（特别好用，强烈推荐）
+- 🌐 Web 版：[gTongJi_Canvas_Web](https://github.com/mmmlllnnn/TongJi_Canvas_Web)（轻量化，省心）
 
 ---
 
