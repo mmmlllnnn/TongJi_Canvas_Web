@@ -101,7 +101,16 @@ try {
     
     // 检查HTTP状态码
     if ($httpCode >= 400) {
-        throw new Exception('HTTP错误: ' . $httpCode);
+        http_response_code(500);
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'HTTP错误: ' . $httpCode,
+            'data' => $response,
+            'http_code' => $httpCode,
+            'url' => $url,
+            'cookies_used' => !empty($cookies)
+        ), JSON_UNESCAPED_UNICODE);
+        exit();
     }
     
     // 成功响应

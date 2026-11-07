@@ -85,6 +85,7 @@
             outline: none; resize: vertical; transition: border-color .15s;
         }
         .textarea:focus { border-color: var(--blue); }
+        .textarea:focus::placeholder { color: transparent; }
         .input-err { font-size: 12px; color: var(--red); margin-top: 4px; display: none; }
         .input-err.show { display: block; }
 
@@ -264,8 +265,8 @@
     <!-- Cookie -->
     <div class="card card--cookie">
         <label class="input-label" for="cookieInput">Cookie</label>
-        <textarea class="textarea" id="cookieInput" placeholder="_canvas_middle_session=... [获取方式见使用说明]"></textarea>
-        <div class="input-err" id="cookieError">请输入 Cookie</div>
+        <textarea class="textarea" id="cookieInput" placeholder="请粘贴 Cookie 值或完整 Cookie [获取方式见使用说明]"></textarea>
+        <div class="input-err" id="cookieError">请粘贴 Cookie 值</div>
     </div>
 
     <!-- Scan -->
@@ -361,6 +362,7 @@
     const step3 = document.getElementById('step3');
 
     let scannedUrl = '';
+    let submittedCookies = '';
     let popup = null;
     let isMinimal = false;
 
@@ -421,13 +423,31 @@
     }
 
     // ── Cookie check ──
+    function normalizeCookie(cookie) {
+        const prefix = '_canvas_middle_session=';
+        const cookies = cookie.split(';').map(item => item.trim()).filter(Boolean);
+        if (!cookies.length) return '';
+
+        const sessionCookies = cookies.filter(item => item.startsWith(prefix));
+        // 合并重复前缀；多个 session Cookie 时取第一个非空值。
+        const value = sessionCookies.length
+            ? sessionCookies.map(item => item.replace(/_canvas_middle_session=\s*/g, '').trim()).find(Boolean) || ''
+            : cookies.shift();
+        const otherCookies = cookies.filter(item => !item.startsWith(prefix));
+
+        // 只编码解码后的特殊字符，保留已有的 %XX 编码。
+        return [prefix + value.replace(/[+/=]/g, encodeURIComponent), ...otherCookies].join('; ');
+    }
+
     function checkCookie() {
-        const ok = cookieInput.value.trim().length > 0;
+        const normalized = normalizeCookie(cookieInput.value);
+        if (cookieInput.value !== normalized) cookieInput.value = normalized;
+        const value = cookieInput.value.trim();
+        const ok = value.length > 0 && value !== '_canvas_middle_session=';
         cookieError.classList.toggle('show', !ok);
         if (ok) markStep(1);
         return ok;
     }
-    cookieInput.addEventListener('input', checkCookie);
 
     // ── Pill helpers ──
     function showPill(type, msg) {
@@ -438,12 +458,11 @@
     function hidePill() { scanPill.className = 'pill'; }
 
     // ── Scan button ──
-    scanBtn.addEventListener('click', () => {
-        if (!checkCookie()) return;
-        openScanner();
-    });
+    scanBtn.addEventListener('click', openScanner);
 
     function openScanner() {
+        if (!checkCookie()) return;
+        submittedCookies = cookieInput.value.trim();
         if (popup && !popup.closed) { popup.focus(); return; }
 
         const w = 440, h = 620;
@@ -488,7 +507,7 @@
 
     // ── Perform sign ──
     async function performSign() {
-        if (!scannedUrl || !checkCookie()) return;
+        if (!scannedUrl || !submittedCookies) return;
 
         showPill('wait', '正在签到…');
         resultCard.classList.remove('show');
@@ -499,7 +518,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     url: scannedUrl,
-                    cookies: cookieInput.value.trim(),
+                    cookies: submittedCookies,
                     headers: {
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
                         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -512,7 +531,7 @@
             hidePill();
 
             if (!data.success) {
-                showResult('fail', '请求失败', data.error || '未知错误', scannedUrl, '');
+                showResult('fail', '请求失败', data.error || '未知错误', scannedUrl, data.data || '');
                 return;
             }
 
