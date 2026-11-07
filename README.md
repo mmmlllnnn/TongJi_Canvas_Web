@@ -3,7 +3,6 @@
 Web版同济大学Canvas系统课堂签到助手 
 
 
-
 [在线访问：https://handsome.eu.org/canvas/index.html](https://handsome.eu.org/canvas/index.html)
 
 推荐构造专属 URL，可永久使用，转发给他人打开即可直接扫码签到。
